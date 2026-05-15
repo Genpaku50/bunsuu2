@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔導書 〜分数の試練〜</title>
+    <style>
+        :root {
+            --bg-color: #160a28; /* 深い紫 */
+            --text-main: #e2d9f3;
+            --magic-green: #00fa9a; /* 魔法陣の緑 */
+            --magic-purple: #9d4edd;
+            --danger: #ff0055;
+            --btn-bg: rgba(30, 15, 50, 0.8);
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            text-align: center;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(157, 78, 221, 0.15) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(0, 250, 154, 0.1) 0%, transparent 20%);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+            transition: background-color 0.1s;
+        }
+        #game-container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 25px;
+            background: rgba(20, 10, 40, 0.7);
+            border: 2px solid var(--magic-purple);
+            border-radius: 12px;
+            position: relative;
+            box-shadow: 0 0 25px rgba(157, 78, 221, 0.4);
+        }
+        h1 {
+            font-size: 26px;
+            color: var(--magic-green);
+            margin-top: 0;
+            border-bottom: 2px dashed var(--magic-purple);
+            padding-bottom: 10px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--magic-green);
+        }
+
+        /* 解説・設定 */
+        .info-box {
+            background-color: rgba(0,0,0,0.4);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: left;
+            font-size: 13px;
+            border-left: 4px solid var(--magic-green);
+        }
+        .info-box h4 { margin: 0 0 8px 0; color: var(--magic-green); font-size: 15px; }
+        .info-box ul { padding-left: 20px; margin: 0; }
+        .info-box li { margin-bottom: 4px; }
+        .settings-box { border: 1px solid var(--magic-purple); border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: left; }
+        h3 { font-size: 14px; margin: 0 0 10px 0; color: #c8b6ff; }
+        .checkbox-group label, .radio-group label { display: inline-block; margin-right: 15px; cursor: pointer; font-size: 15px; margin-bottom: 5px;}
+
+        /* 分数の表示スタイル（上下に分ける） */
+        .frac {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 5px;
+            line-height: 1.1;
+        }
+        .frac .top {
+            border-bottom: 2px solid currentColor;
+            padding: 0 4px;
+        }
+        .frac .bottom {
+            padding: 0 4px;
+        }
+        .paren { font-weight: normal; margin: 0 2px; }
+
+        /* ゲーム画面 */
+        #question {
+            font-size: 40px;
+            margin: 30px 0;
+            min-height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-shadow: 0 0 10px var(--magic-purple);
+            font-weight: bold;
+        }
+        #timer { font-size: 26px; color: var(--magic-green); font-weight: bold; text-shadow: 0 0 8px var(--magic-green); }
+        #score-display { font-size: 20px; color: #c8b6ff; margin-bottom: 10px; }
+
+        /* 選択肢ボタン */
+        #choices { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; min-height: 160px; }
+        .choice-btn {
+            flex: 1 1 40%;
+            font-size: 28px;
+            padding: 10px 5px;
+            background: var(--btn-bg);
+            color: white;
+            border: 2px solid var(--magic-purple);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.1s, transform 0.1s;
+        }
+        .choice-btn:active { background: var(--magic-green); color: black; transform: scale(0.95); border-color: var(--magic-green); }
+
+        /* 開始ボタン */
+        .start-btn {
+            font-size: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #7b2cbf, #5a189a);
+            color: white;
+            border: 1px solid #9d4edd;
+            border-radius: 50px;
+            width: 100%;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 0 #3c096c;
+        }
+        .start-btn:active { transform: translateY(4px); box-shadow: none; }
+
+        /* リザルト */
+        .atk-label { font-size: 18px; color: #c8b6ff; margin-bottom: 0; }
+        .atk-value { font-size: 72px; color: var(--magic-green); text-shadow: 0 0 20px var(--magic-green); margin: 0; }
+        .rank-badge { font-size: 60px; margin-top: -5px; color: white; font-weight: bold; letter-spacing: 2px;}
+        
+        .detail-box { background: rgba(0,0,0,0.4); padding: 15px; font-size: 14px; text-align: left; border: 1px solid var(--magic-purple); margin: 15px 0; border-radius: 8px; }
+        .detail-item { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding: 5px 0; }
+        .detail-label { color: #aaa; }
+        .detail-value { color: #fff; font-weight: bold; }
+        .mistake-value { color: var(--danger); font-weight: bold; }
+        
+        .shake { animation: shake 0.2s infinite; }
+        @keyframes shake { 0% { transform: translate(2px, 2px); } 50% { transform: translate(-2px, -2px); } 100% { transform: translate(2px, -2px); } }
+        .hidden { display: none !important; }
+
+        /* 魔法エフェクト */
+        .slash { position: absolute; top: 50%; left: 0; width: 100%; height: 5px; background: var(--magic-green); transform: rotate(5deg); opacity: 0; pointer-events: none; box-shadow: 0 0 15px var(--magic-green); }
+        .slash-anim { animation: slashEffect 0.3s ease-out; }
+        @keyframes slashEffect { 0% { opacity: 1; width: 0; } 100% { opacity: 0; width: 100%; } }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="slash-line" class="slash"></div>
+
+    <div id="start-screen">
+        <h1>魔導書 〜分数の試練〜</h1>
+        
+        <div class="info-box">
+            <h4>【魔術の心得】</h4>
+            <ul>
+                <li>分数の四則演算を30秒間で解き明かせ。</li>
+                <li>すべての答えは<span style="color:var(--magic-green);">「約分」</span>された形になっている。</li>
+                <li>「負の数（マイナス）」を解放すると、中学生レベルの完全な試練となる。</li>
+                <li><span style="color:var(--danger); font-weight:bold;">【掟】間違えると、持ち時間が1秒減少する。</span></li>
+            </ul>
+        </div>
+
+        <div class="settings-box">
+            <h3>使用する魔法（計算）</h3>
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="op-add" checked> ＋</label>
+                <label><input type="checkbox" id="op-sub" checked> －</label>
+                <label><input type="checkbox" id="op-mul" checked> ×</label>
+                <label><input type="checkbox" id="op-div" checked> ÷</label>
+            </div>
+            <br>
+            <h3>闇の魔力（マイナスの数）</h3>
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="use-negative"> 負の数を混ぜる</label>
+            </div>
+            <br>
+            <h3>標的数（選択肢）</h3>
+            <div class="radio-group">
+                <label><input type="radio" name="choiceCount" value="2"> 2</label>
+                <label><input type="radio" name="choiceCount" value="3"> 3</label>
+                <label><input type="radio" name="choiceCount" value="4" checked> 4</label>
+            </div>
+        </div>
+        <button class="start-btn" onclick="startGame()">詠唱開始！</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <div id="timer">残り時間：30</div>
+        <div id="score-display">詠唱成功：0</div>
+        <div id="question"></div>
+        <div id="choices"></div>
+    </div>
+
+    <div id="result-screen" class="hidden">
+        <p class="atk-label">ー 総合魔力 ー</p>
+        <h2 id="final-atk" class="atk-value">0</h2>
+        <div id="rank-display" class="rank-badge">-</div>
+        
+        <div class="detail-box">
+            <div class="detail-item"><span class="detail-label">プレイ日時</span><span id="res-datetime" class="detail-value"></span></div>
+            <div class="detail-item"><span class="detail-label">正解数</span><span id="res-count" class="detail-value"></span></div>
+            <div class="detail-item"><span class="detail-label">魔力暴走（ミス）</span><span id="res-mistakes" class="mistake-value"></span></div>
+            <div class="detail-item"><span class="detail-label">計算設定</span><span id="res-ops" class="detail-value"></span></div>
+            <div class="detail-item"><span class="detail-label">連続プレイ回数</span><span id="res-playcount" class="detail-value" style="color:var(--magic-green)"></span></div>
+        </div>
+
+        <button class="start-btn" onclick="retryGame()">再挑戦！</button>
+        <p style="margin-top:15px; color:#c8b6ff; cursor:pointer; text-decoration:underline; font-size:14px;" onclick="location.reload()">設定に戻る</p>
+    </div>
+</div>
+
+<script>
+    let score = 0;
+    let mistakeCount = 0;
+    let timeLeft = 30;
+    let correctAnswerObj; 
+    let timerId;
+    let activeOps = [];
+    let numChoices = 4;
+    let useNegative = false;
+    let totalPlayCount = 0;
+
+    // 最大公約数を求める（約分用）
+    function gcd(a, b) {
+        a = Math.abs(a); b = Math.abs(b);
+        return b === 0 ? a : gcd(b, a % b);
+    }
+
+    // 分数を約分してオブジェクトで返す
+    function simplify(n, d) {
+        if (d === 0) return {n: 0, d: 1};
+        let g = gcd(n, d);
+        n /= g; d /= g;
+        if (d < 0) { n = -n; d = -d; }
+        return {n: n, d: d};
+    }
+
+    // 分数をHTML（見た目）に変換する
+    function getFracHTML(n, d) {
+        if (n === 0) return "0";
+        if (d === 1) return n.toString();
+        let sign = n < 0 ? "- " : "";
+        let absN = Math.abs(n);
+        return `${sign}<div class="frac"><span class="top">${absN}</span><span class="bottom">${d}</span></div>`;
+    }
+
+    // 負の数の場合はカッコをつける
+    function renderOperand(n, d, isSecond) {
+        let html = getFracHTML(n, d);
+        if (isSecond && n < 0) {
+            return `<span class="paren">(</span> ${html} <span class="paren">)</span>`;
+        }
+        return html;
+    }
+
+    function startGame() {
+        activeOps = [];
+        if (document.getElementById('op-add').checked) activeOps.push('+');
+        if (document.getElementById('op-sub').checked) activeOps.push('-');
+        if (document.getElementById('op-mul').checked) activeOps.push('×');
+        if (document.getElementById('op-div').checked) activeOps.push('÷');
+
+        if (activeOps.length === 0) { alert('計算を選んでください。'); return; }
+
+        useNegative = document.getElementById('use-negative').checked;
+        numChoices = parseInt(document.querySelector('input[name="choiceCount"]:checked').value);
+        totalPlayCount++;
+
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('game-screen').classList.remove('hidden');
+        document.getElementById('result-screen').classList.add('hidden');
+        
+        score = 0;
+        mistakeCount = 0;
+        timeLeft = 30;
+        document.getElementById('timer').textContent = `残り時間：${timeLeft}`;
+        document.getElementById('score-display').textContent = `詠唱成功：${score}`;
+        
+        nextQuestion();
+        
+        timerId = setInterval(() => {
+            timeLeft--;
+            if (timeLeft < 0) timeLeft = 0;
+            document.getElementById('timer').textContent = `残り時間：${timeLeft}`;
+            
+            if (timeLeft <= 5 && timeLeft > 0) document.body.classList.add('shake');
+            else document.body.classList.remove('shake');
+            
+            if (timeLeft <= 0) endGame();
+        }, 1000);
+    }
+
+    function retryGame() { startGame(); }
+
+    function getRandN() {
+        let n = Math.floor(Math.random() * 5) + 1; // 1~5
+        if (useNegative && Math.random() > 0.5) n = -n;
+        return n;
+    }
+    function getRandD() {
+        return Math.floor(Math.random() * 5) + 2; // 2~6
+    }
+
+    function nextQuestion() {
+        const op = activeOps[Math.floor(Math.random() * activeOps.length)];
+        
+        let n1 = getRandN(); let d1 = getRandD();
+        let n2 = getRandN(); let d2 = getRandD();
+        
+        // 簡単にするため、最初の分数は約分済みにする
+        let f1 = simplify(n1, d1); n1 = f1.n; d1 = f1.d;
+        let f2 = simplify(n2, d2); n2 = f2.n; d2 = f2.d;
+
+        let rn = 0, rd = 1;
+
+        if (op === '+') {
+            rn = n1 * d2 + n2 * d1; rd = d1 * d2;
+        } else if (op === '-') {
+            rn = n1 * d2 - n2 * d1; rd = d1 * d2;
+        } else if (op === '×') {
+            rn = n1 * n2; rd = d1 * d2;
+        } else if (op === '÷') {
+            rn = n1 * d2; rd = d1 * n2;
+        }
+
+        correctAnswerObj = simplify(rn, rd);
+        
+        let qText = `${renderOperand(n1, d1, false)} <span style="margin: 0 10px;">${op}</span> ${renderOperand(n2, d2, true)}`;
+        document.getElementById('question').innerHTML = qText;
+
+        // 選択肢生成
+        let options = [correctAnswerObj];
+        let loopCount = 0;
+        let correctVal = correctAnswerObj.n / correctAnswerObj.d;
+
+        while (options.length < numChoices && loopCount < 50) {
+            loopCount++;
+            let trap = Math.random();
+            let dn = correctAnswerObj.n + (Math.floor(Math.random() * 5) - 2);
+            let dd = correctAnswerObj.d + (Math.floor(Math.random() * 5) - 2);
+
+            // 通分忘れのトラップ
+            if (op === '+' && trap < 0.2) { dn = n1 + n2; dd = d1 + d2; }
+            if (op === '-' && trap < 0.2) { dn = n1 - n2; dd = Math.abs(d1 - d2) || 1; }
+            // 符号のトラップ
+            if (trap > 0.8 && correctAnswerObj.n !== 0) { dn = -correctAnswerObj.n; dd = correctAnswerObj.d; }
+            // 逆数のトラップ
+            if (trap > 0.6 && trap <= 0.8 && correctAnswerObj.n !== 0) { dn = correctAnswerObj.d; dd = correctAnswerObj.n; }
+
+            if (dd === 0) continue;
+            let dummyObj = simplify(dn, dd);
+            let dummyVal = dummyObj.n / dummyObj.d;
+
+            // 被りチェック
+            let isUnique = true;
+            for(let o of options) {
+                if (o.n / o.d === dummyVal) isUnique = false;
+            }
+            if (isUnique) options.push(dummyObj);
+        }
+
+        options.sort(() => Math.random() - 0.5);
+        const choicesDiv = document.getElementById('choices');
+        choicesDiv.innerHTML = '';
+        
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.innerHTML = getFracHTML(opt.n, opt.d);
+            
+            btn.onclick = () => {
+                if (opt.n === correctAnswerObj.n && opt.d === correctAnswerObj.d) {
+                    score++;
+                    document.getElementById('score-display').textContent = `詠唱成功：${score}`;
+                    triggerSlash();
+                    nextQuestion();
+                } else {
+                    mistakeCount++;
+                    timeLeft -= 1;
+                    if (timeLeft < 0) timeLeft = 0;
+                    document.getElementById('timer').textContent = `残り時間：${timeLeft}`;
+                    
+                    document.body.style.backgroundColor = 'var(--danger)';
+                    setTimeout(() => {
+                        document.body.style.backgroundColor = 'var(--bg-color)';
+                    }, 100);
+                    
+                    if (timeLeft <= 0) endGame();
+                }
+            };
+            choicesDiv.appendChild(btn);
+        });
+    }
+
+    function triggerSlash() {
+        const slash = document.getElementById('slash-line');
+        slash.classList.remove('slash-anim');
+        void slash.offsetWidth;
+        slash.classList.add('slash-anim');
+    }
+
+    function endGame() {
+        clearInterval(timerId);
+        document.body.classList.remove('shake');
+        document.getElementById('game-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+
+        const now = new Date();
+        const dateStr = `${now.getMonth()+1}月${now.getDate()}日 ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+        // 分数は難しいのでベーススコアを高めに
+        let choiceMult = 1 + (numChoices - 2) * 0.3;
+        let opMult = activeOps.length * 0.2 + (useNegative ? 0.5 : 0);
+        let finalAtk = Math.floor(score * 200 * choiceMult * (1 + opMult));
+        
+        let currentAtk = 0;
+        let step = Math.ceil(finalAtk / 30);
+        if (step === 0) step = 1;
+        let counter = setInterval(() => {
+            currentAtk += step;
+            if (currentAtk >= finalAtk) {
+                currentAtk = finalAtk;
+                clearInterval(counter);
+                showRank(finalAtk);
+            }
+            document.getElementById('final-atk').textContent = currentAtk.toLocaleString();
+        }, 30);
+
+        document.getElementById('res-datetime').textContent = dateStr;
+        document.getElementById('res-count').textContent = `${score} 回`;
+        document.getElementById('res-mistakes').textContent = `${mistakeCount} 回`;
+        
+        let opsStr = activeOps.join(' ');
+        if (useNegative) opsStr += " (負の数あり)";
+        document.getElementById('res-ops').textContent = opsStr;
+        document.getElementById('res-playcount').textContent = `${totalPlayCount} 回目`;
+    }
+
+    function showRank(atk) {
+        let rank = '見習い'; let color = '#aaa';
+        if (atk >= 8000) { rank = '魔法神'; color = 'var(--magic-green)'; }
+        else if (atk >= 6000) { rank = '賢者'; color = '#ffd700'; }
+        else if (atk >= 4000) { rank = '大魔導士'; color = '#ff00ff'; }
+        else if (atk >= 2000) { rank = '魔術師'; color = '#00e5ff'; }
+        
+        const rd = document.getElementById('rank-display');
+        rd.textContent = rank;
+        rd.style.color = color;
+        rd.style.textShadow = `0 0 20px ${color}`;
+    }
+</script>
+</body>
+</html>

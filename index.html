@@ -6,9 +6,9 @@
     <title>魔導書 〜分数の試練〜</title>
     <style>
         :root {
-            --bg-color: #160a28; /* 深い紫 */
+            --bg-color: #160a28;
             --text-main: #e2d9f3;
-            --magic-green: #00fa9a; /* 魔法陣の緑 */
+            --magic-green: #00fa9a;
             --magic-purple: #9d4edd;
             --danger: #ff0055;
             --btn-bg: rgba(30, 15, 50, 0.8);
@@ -62,7 +62,7 @@
         h3 { font-size: 14px; margin: 0 0 10px 0; color: #c8b6ff; }
         .checkbox-group label, .radio-group label { display: inline-block; margin-right: 15px; cursor: pointer; font-size: 15px; margin-bottom: 5px;}
 
-        /* 分数の表示スタイル（上下に分ける） */
+        /* 分数の表示スタイル */
         .frac {
             display: inline-flex;
             flex-direction: column;
@@ -71,13 +71,8 @@
             margin: 0 5px;
             line-height: 1.1;
         }
-        .frac .top {
-            border-bottom: 2px solid currentColor;
-            padding: 0 4px;
-        }
-        .frac .bottom {
-            padding: 0 4px;
-        }
+        .frac .top { border-bottom: 2px solid currentColor; padding: 0 4px; }
+        .frac .bottom { padding: 0 4px; }
         .paren { font-weight: normal; margin: 0 2px; }
 
         /* ゲーム画面 */
@@ -93,7 +88,13 @@
             font-weight: bold;
         }
         #timer { font-size: 26px; color: var(--magic-green); font-weight: bold; text-shadow: 0 0 8px var(--magic-green); }
-        #score-display { font-size: 20px; color: #c8b6ff; margin-bottom: 10px; }
+        #score-display { 
+            font-size: 20px; 
+            color: #c8b6ff; 
+            margin-bottom: 10px; 
+            transition: all 0.2s ease; /* アニメーション用 */
+            display: inline-block;
+        }
 
         /* 選択肢ボタン */
         #choices { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; min-height: 160px; }
@@ -163,8 +164,7 @@
             <ul>
                 <li>分数の四則演算を30秒間で解き明かせ。</li>
                 <li>すべての答えは<span style="color:var(--magic-green);">「約分」</span>された形になっている。</li>
-                <li>「負の数（マイナス）」を解放すると、中学生レベルの完全な試練となる。</li>
-                <li><span style="color:var(--danger); font-weight:bold;">【掟】間違えると、持ち時間が1秒減少する。</span></li>
+                <li><span style="color:var(--danger); font-weight:bold;">【掟】間違えると、詠唱成功数（スコア）が「1」減る。適当に連打しても記録は伸びないぞ！</span></li>
             </ul>
         </div>
 
@@ -206,7 +206,7 @@
         
         <div class="detail-box">
             <div class="detail-item"><span class="detail-label">プレイ日時</span><span id="res-datetime" class="detail-value"></span></div>
-            <div class="detail-item"><span class="detail-label">正解数</span><span id="res-count" class="detail-value"></span></div>
+            <div class="detail-item"><span class="detail-label">最終正解スコア</span><span id="res-count" class="detail-value"></span></div>
             <div class="detail-item"><span class="detail-label">魔力暴走（ミス）</span><span id="res-mistakes" class="mistake-value"></span></div>
             <div class="detail-item"><span class="detail-label">計算設定</span><span id="res-ops" class="detail-value"></span></div>
             <div class="detail-item"><span class="detail-label">連続プレイ回数</span><span id="res-playcount" class="detail-value" style="color:var(--magic-green)"></span></div>
@@ -243,7 +243,6 @@
         return {n: n, d: d};
     }
 
-    // 分数をHTML（見た目）に変換する
     function getFracHTML(n, d) {
         if (n === 0) return "0";
         if (d === 1) return n.toString();
@@ -252,7 +251,6 @@
         return `${sign}<div class="frac"><span class="top">${absN}</span><span class="bottom">${d}</span></div>`;
     }
 
-    // 負の数の場合はカッコをつける
     function renderOperand(n, d, isSecond) {
         let html = getFracHTML(n, d);
         if (isSecond && n < 0) {
@@ -315,7 +313,6 @@
         let n1 = getRandN(); let d1 = getRandD();
         let n2 = getRandN(); let d2 = getRandD();
         
-        // 簡単にするため、最初の分数は約分済みにする
         let f1 = simplify(n1, d1); n1 = f1.n; d1 = f1.d;
         let f2 = simplify(n2, d2); n2 = f2.n; d2 = f2.d;
 
@@ -347,19 +344,15 @@
             let dn = correctAnswerObj.n + (Math.floor(Math.random() * 5) - 2);
             let dd = correctAnswerObj.d + (Math.floor(Math.random() * 5) - 2);
 
-            // 通分忘れのトラップ
             if (op === '+' && trap < 0.2) { dn = n1 + n2; dd = d1 + d2; }
             if (op === '-' && trap < 0.2) { dn = n1 - n2; dd = Math.abs(d1 - d2) || 1; }
-            // 符号のトラップ
             if (trap > 0.8 && correctAnswerObj.n !== 0) { dn = -correctAnswerObj.n; dd = correctAnswerObj.d; }
-            // 逆数のトラップ
             if (trap > 0.6 && trap <= 0.8 && correctAnswerObj.n !== 0) { dn = correctAnswerObj.d; dd = correctAnswerObj.n; }
 
             if (dd === 0) continue;
             let dummyObj = simplify(dn, dd);
             let dummyVal = dummyObj.n / dummyObj.d;
 
-            // 被りチェック
             let isUnique = true;
             for(let o of options) {
                 if (o.n / o.d === dummyVal) isUnique = false;
@@ -384,16 +377,25 @@
                     nextQuestion();
                 } else {
                     mistakeCount++;
-                    timeLeft -= 1;
-                    if (timeLeft < 0) timeLeft = 0;
-                    document.getElementById('timer').textContent = `残り時間：${timeLeft}`;
                     
+                    // 【変更点】スコア減点処理（0未満にはならない）
+                    if (score > 0) score--;
+                    document.getElementById('score-display').textContent = `詠唱成功：${score}`;
+                    
+                    // 【変更点】スコアが減ったことを視覚的に強調
+                    const scoreDisp = document.getElementById('score-display');
+                    scoreDisp.style.color = 'var(--danger)';
+                    scoreDisp.style.transform = 'scale(1.3)';
+                    setTimeout(() => {
+                        scoreDisp.style.color = '#c8b6ff';
+                        scoreDisp.style.transform = 'scale(1)';
+                    }, 200);
+                    
+                    // 画面の赤フラッシュ（時間は減らさない）
                     document.body.style.backgroundColor = 'var(--danger)';
                     setTimeout(() => {
                         document.body.style.backgroundColor = 'var(--bg-color)';
                     }, 100);
-                    
-                    if (timeLeft <= 0) endGame();
                 }
             };
             choicesDiv.appendChild(btn);
@@ -416,7 +418,6 @@
         const now = new Date();
         const dateStr = `${now.getMonth()+1}月${now.getDate()}日 ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
 
-        // 分数は難しいのでベーススコアを高めに
         let choiceMult = 1 + (numChoices - 2) * 0.3;
         let opMult = activeOps.length * 0.2 + (useNegative ? 0.5 : 0);
         let finalAtk = Math.floor(score * 200 * choiceMult * (1 + opMult));

@@ -47,15 +47,15 @@
 
         /* 解説・設定 */
         .info-box {
-            background-color: rgba(0,0,0,0.4);
+            background-color: rgba(0,0,0,0.6);
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
             text-align: left;
             font-size: 13px;
-            border-left: 4px solid var(--magic-green);
+            border-left: 4px solid var(--danger);
         }
-        .info-box h4 { margin: 0 0 8px 0; color: var(--magic-green); font-size: 15px; }
+        .info-box h4 { margin: 0 0 8px 0; color: var(--danger); font-size: 15px; }
         .info-box ul { padding-left: 20px; margin: 0; }
         .info-box li { margin-bottom: 4px; }
         .settings-box { border: 1px solid var(--magic-purple); border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: left; }
@@ -92,7 +92,7 @@
             font-size: 20px; 
             color: #c8b6ff; 
             margin-bottom: 10px; 
-            transition: all 0.2s ease; /* アニメーション用 */
+            transition: all 0.2s ease;
             display: inline-block;
         }
 
@@ -111,7 +111,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.1s, transform 0.1s;
+            transition: background 0.1s, transform 0.1s, opacity 0.2s;
         }
         .choice-btn:active { background: var(--magic-green); color: black; transform: scale(0.95); border-color: var(--magic-green); }
 
@@ -160,11 +160,11 @@
         <h1>魔導書 〜分数の試練〜</h1>
         
         <div class="info-box">
-            <h4>【魔術の心得】</h4>
+            <h4>【絶対の掟：連打厳禁】</h4>
             <ul>
-                <li>分数の四則演算を30秒間で解き明かせ。</li>
-                <li>すべての答えは<span style="color:var(--magic-green);">「約分」</span>された形になっている。</li>
-                <li><span style="color:var(--danger); font-weight:bold;">【掟】間違えると、詠唱成功数（スコア）が「1」減る。適当に連打しても記録は伸びないぞ！</span></li>
+                <li>間違えると、詠唱成功数（スコア）が<span style="color:var(--danger); font-weight:bold;">「−2」</span>される。</li>
+                <li>さらに、ペナルティとして<span style="color:var(--danger); font-weight:bold;">1.5秒間「魔力ショート（操作不能）」</span>となる！</li>
+                <li>適当にボタンを連打すると、スコアはマイナスのドン底に落ちるぞ。</li>
             </ul>
         </div>
 
@@ -206,7 +206,7 @@
         
         <div class="detail-box">
             <div class="detail-item"><span class="detail-label">プレイ日時</span><span id="res-datetime" class="detail-value"></span></div>
-            <div class="detail-item"><span class="detail-label">最終正解スコア</span><span id="res-count" class="detail-value"></span></div>
+            <div class="detail-item"><span class="detail-label">最終スコア</span><span id="res-count" class="detail-value"></span></div>
             <div class="detail-item"><span class="detail-label">魔力暴走（ミス）</span><span id="res-mistakes" class="mistake-value"></span></div>
             <div class="detail-item"><span class="detail-label">計算設定</span><span id="res-ops" class="detail-value"></span></div>
             <div class="detail-item"><span class="detail-label">連続プレイ回数</span><span id="res-playcount" class="detail-value" style="color:var(--magic-green)"></span></div>
@@ -227,14 +227,15 @@
     let numChoices = 4;
     let useNegative = false;
     let totalPlayCount = 0;
+    
+    // 【追加】連打防止用のロック変数
+    let isLocked = false; 
 
-    // 最大公約数を求める（約分用）
     function gcd(a, b) {
         a = Math.abs(a); b = Math.abs(b);
         return b === 0 ? a : gcd(b, a % b);
     }
 
-    // 分数を約分してオブジェクトで返す
     function simplify(n, d) {
         if (d === 0) return {n: 0, d: 1};
         let g = gcd(n, d);
@@ -279,8 +280,14 @@
         score = 0;
         mistakeCount = 0;
         timeLeft = 30;
+        isLocked = false; // ゲーム開始時にロックを解除
+        
+        // ボタンの見た目を初期化
+        document.body.style.backgroundColor = 'var(--bg-color)';
+        
         document.getElementById('timer').textContent = `残り時間：${timeLeft}`;
         document.getElementById('score-display').textContent = `詠唱成功：${score}`;
+        document.getElementById('score-display').style.color = '#c8b6ff';
         
         nextQuestion();
         
@@ -299,12 +306,12 @@
     function retryGame() { startGame(); }
 
     function getRandN() {
-        let n = Math.floor(Math.random() * 5) + 1; // 1~5
+        let n = Math.floor(Math.random() * 5) + 1;
         if (useNegative && Math.random() > 0.5) n = -n;
         return n;
     }
     function getRandD() {
-        return Math.floor(Math.random() * 5) + 2; // 2~6
+        return Math.floor(Math.random() * 5) + 2;
     }
 
     function nextQuestion() {
@@ -333,10 +340,8 @@
         let qText = `${renderOperand(n1, d1, false)} <span style="margin: 0 10px;">${op}</span> ${renderOperand(n2, d2, true)}`;
         document.getElementById('question').innerHTML = qText;
 
-        // 選択肢生成
         let options = [correctAnswerObj];
         let loopCount = 0;
-        let correctVal = correctAnswerObj.n / correctAnswerObj.d;
 
         while (options.length < numChoices && loopCount < 50) {
             loopCount++;
@@ -370,6 +375,9 @@
             btn.innerHTML = getFracHTML(opt.n, opt.d);
             
             btn.onclick = () => {
+                // 【追加】ロック中はボタン入力を無視する
+                if (isLocked) return;
+
                 if (opt.n === correctAnswerObj.n && opt.d === correctAnswerObj.d) {
                     score++;
                     document.getElementById('score-display').textContent = `詠唱成功：${score}`;
@@ -378,24 +386,36 @@
                 } else {
                     mistakeCount++;
                     
-                    // 【変更点】スコア減点処理（0未満にはならない）
-                    if (score > 0) score--;
+                    // 【追加】スコアを容赦なく「2点」減らす（マイナスも許可）
+                    score -= 2;
                     document.getElementById('score-display').textContent = `詠唱成功：${score}`;
                     
-                    // 【変更点】スコアが減ったことを視覚的に強調
                     const scoreDisp = document.getElementById('score-display');
                     scoreDisp.style.color = 'var(--danger)';
                     scoreDisp.style.transform = 'scale(1.3)';
+                    
+                    // 【追加】ペナルティ：1.5秒間の操作ロック
+                    isLocked = true;
+                    document.body.style.backgroundColor = 'var(--danger)';
+                    
+                    // ボタンを半透明にして「押せない感」を出す
+                    const allBtns = document.querySelectorAll('.choice-btn');
+                    allBtns.forEach(b => {
+                        b.style.opacity = '0.4';
+                        b.style.cursor = 'not-allowed';
+                    });
+
                     setTimeout(() => {
                         scoreDisp.style.color = '#c8b6ff';
                         scoreDisp.style.transform = 'scale(1)';
-                    }, 200);
-                    
-                    // 画面の赤フラッシュ（時間は減らさない）
-                    document.body.style.backgroundColor = 'var(--danger)';
-                    setTimeout(() => {
                         document.body.style.backgroundColor = 'var(--bg-color)';
-                    }, 100);
+                        
+                        allBtns.forEach(b => {
+                            b.style.opacity = '1';
+                            b.style.cursor = 'pointer';
+                        });
+                        isLocked = false; // ロック解除
+                    }, 1500);
                 }
             };
             choicesDiv.appendChild(btn);
@@ -411,7 +431,9 @@
 
     function endGame() {
         clearInterval(timerId);
+        isLocked = false;
         document.body.classList.remove('shake');
+        document.body.style.backgroundColor = 'var(--bg-color)';
         document.getElementById('game-screen').classList.add('hidden');
         document.getElementById('result-screen').classList.remove('hidden');
 
@@ -420,23 +442,25 @@
 
         let choiceMult = 1 + (numChoices - 2) * 0.3;
         let opMult = activeOps.length * 0.2 + (useNegative ? 0.5 : 0);
+        
+        // マイナススコアの場合は攻撃力も0以下になる
         let finalAtk = Math.floor(score * 200 * choiceMult * (1 + opMult));
         
-        let currentAtk = 0;
-        let step = Math.ceil(finalAtk / 30);
-        if (step === 0) step = 1;
-        let counter = setInterval(() => {
-            currentAtk += step;
-            if (currentAtk >= finalAtk) {
-                currentAtk = finalAtk;
-                clearInterval(counter);
-                showRank(finalAtk);
-            }
-            document.getElementById('final-atk').textContent = currentAtk.toLocaleString();
-        }, 30);
+        document.getElementById('final-atk').textContent = finalAtk.toLocaleString();
+        
+        // マイナススコアの時の特別色
+        if (finalAtk < 0) {
+            document.getElementById('final-atk').style.color = 'var(--danger)';
+            document.getElementById('final-atk').style.textShadow = '0 0 20px var(--danger)';
+        } else {
+            document.getElementById('final-atk').style.color = 'var(--magic-green)';
+            document.getElementById('final-atk').style.textShadow = '0 0 20px var(--magic-green)';
+        }
+        
+        showRank(finalAtk);
 
         document.getElementById('res-datetime').textContent = dateStr;
-        document.getElementById('res-count').textContent = `${score} 回`;
+        document.getElementById('res-count').textContent = `${score} 点`;
         document.getElementById('res-mistakes').textContent = `${mistakeCount} 回`;
         
         let opsStr = activeOps.join(' ');
@@ -447,7 +471,10 @@
 
     function showRank(atk) {
         let rank = '見習い'; let color = '#aaa';
-        if (atk >= 8000) { rank = '魔法神'; color = 'var(--magic-green)'; }
+        
+        // マイナススコア専用ランク
+        if (atk < 0) { rank = '魔力暴走（落第）'; color = 'var(--danger)'; }
+        else if (atk >= 8000) { rank = '魔法神'; color = 'var(--magic-green)'; }
         else if (atk >= 6000) { rank = '賢者'; color = '#ffd700'; }
         else if (atk >= 4000) { rank = '大魔導士'; color = '#ff00ff'; }
         else if (atk >= 2000) { rank = '魔術師'; color = '#00e5ff'; }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>魔導書 〜分数の試練〜</title>
+    <title>魔導書 〜分数の試練〜（基礎固め版）</title>
     <style>
         :root {
             --bg-color: #160a28;
@@ -53,9 +53,9 @@
             margin-bottom: 20px;
             text-align: left;
             font-size: 13px;
-            border-left: 4px solid var(--danger);
+            border-left: 4px solid var(--magic-green);
         }
-        .info-box h4 { margin: 0 0 8px 0; color: var(--danger); font-size: 15px; }
+        .info-box h4 { margin: 0 0 8px 0; color: var(--magic-green); font-size: 15px; }
         .info-box ul { padding-left: 20px; margin: 0; }
         .info-box li { margin-bottom: 4px; }
         .settings-box { border: 1px solid var(--magic-purple); border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: left; }
@@ -92,7 +92,6 @@
             font-size: 20px; 
             color: #c8b6ff; 
             margin-bottom: 10px; 
-            transition: all 0.2s ease;
             display: inline-block;
         }
 
@@ -111,9 +110,17 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.1s, transform 0.1s, opacity 0.2s;
+            transition: background 0.2s, transform 0.1s, opacity 0.2s;
         }
         .choice-btn:active { background: var(--magic-green); color: black; transform: scale(0.95); border-color: var(--magic-green); }
+
+        /* 間違えたボタン用のクラス */
+        .btn-disabled {
+            background: rgba(255, 0, 85, 0.3) !important;
+            color: #888 !important;
+            border-color: #555 !important;
+            pointer-events: none;
+        }
 
         /* 開始ボタン */
         .start-btn {
@@ -160,11 +167,11 @@
         <h1>魔導書 〜分数の試練〜</h1>
         
         <div class="info-box">
-            <h4>【絶対の掟：連打厳禁】</h4>
+            <h4>【基礎固めの心得】</h4>
             <ul>
-                <li>間違えると、詠唱成功数（スコア）が<span style="color:var(--danger); font-weight:bold;">「−2」</span>される。</li>
-                <li>さらに、ペナルティとして<span style="color:var(--danger); font-weight:bold;">1.5秒間「魔力ショート（操作不能）」</span>となる！</li>
-                <li>適当にボタンを連打すると、スコアはマイナスのドン底に落ちるぞ。</li>
+                <li>制限時間は<span style="color:var(--magic-green); font-weight:bold;">たっぷり60秒</span>。紙とペンを使ってじっくり解こう。</li>
+                <li>減点や時間ペナルティは一切ないぞ。</li>
+                <li><span style="color:var(--magic-green); font-weight:bold;">【掟】「1回目のタップ」で正解した時のみスコアが加算される。</span>間違えても、正解を見つけるまでやり直せるぞ。</li>
             </ul>
         </div>
 
@@ -193,8 +200,8 @@
     </div>
 
     <div id="game-screen" class="hidden">
-        <div id="timer">残り時間：30</div>
-        <div id="score-display">詠唱成功：0</div>
+        <div id="timer">残り時間：60</div>
+        <div id="score-display">1発正解数：0</div>
         <div id="question"></div>
         <div id="choices"></div>
     </div>
@@ -206,8 +213,8 @@
         
         <div class="detail-box">
             <div class="detail-item"><span class="detail-label">プレイ日時</span><span id="res-datetime" class="detail-value"></span></div>
-            <div class="detail-item"><span class="detail-label">最終スコア</span><span id="res-count" class="detail-value"></span></div>
-            <div class="detail-item"><span class="detail-label">魔力暴走（ミス）</span><span id="res-mistakes" class="mistake-value"></span></div>
+            <div class="detail-item"><span class="detail-label">1発正解数</span><span id="res-count" class="detail-value"></span></div>
+            <div class="detail-item"><span class="detail-label">打ち損じ（ミス）</span><span id="res-mistakes" class="mistake-value"></span></div>
             <div class="detail-item"><span class="detail-label">計算設定</span><span id="res-ops" class="detail-value"></span></div>
             <div class="detail-item"><span class="detail-label">連続プレイ回数</span><span id="res-playcount" class="detail-value" style="color:var(--magic-green)"></span></div>
         </div>
@@ -220,7 +227,7 @@
 <script>
     let score = 0;
     let mistakeCount = 0;
-    let timeLeft = 30;
+    let timeLeft = 60; // 制限時間を60秒に変更
     let correctAnswerObj; 
     let timerId;
     let activeOps = [];
@@ -228,8 +235,8 @@
     let useNegative = false;
     let totalPlayCount = 0;
     
-    // 【追加】連打防止用のロック変数
-    let isLocked = false; 
+    // 1発正解かどうかを判定するフラグ
+    let isFirstAttempt = true; 
 
     function gcd(a, b) {
         a = Math.abs(a); b = Math.abs(b);
@@ -279,15 +286,10 @@
         
         score = 0;
         mistakeCount = 0;
-        timeLeft = 30;
-        isLocked = false; // ゲーム開始時にロックを解除
-        
-        // ボタンの見た目を初期化
-        document.body.style.backgroundColor = 'var(--bg-color)';
+        timeLeft = 60; // リセット時も60秒
         
         document.getElementById('timer').textContent = `残り時間：${timeLeft}`;
-        document.getElementById('score-display').textContent = `詠唱成功：${score}`;
-        document.getElementById('score-display').style.color = '#c8b6ff';
+        document.getElementById('score-display').textContent = `1発正解数：${score}`;
         
         nextQuestion();
         
@@ -315,6 +317,9 @@
     }
 
     function nextQuestion() {
+        // 新しい問題が出たのでフラグをリセット
+        isFirstAttempt = true;
+
         const op = activeOps[Math.floor(Math.random() * activeOps.length)];
         
         let n1 = getRandN(); let d1 = getRandD();
@@ -375,47 +380,21 @@
             btn.innerHTML = getFracHTML(opt.n, opt.d);
             
             btn.onclick = () => {
-                // 【追加】ロック中はボタン入力を無視する
-                if (isLocked) return;
-
                 if (opt.n === correctAnswerObj.n && opt.d === correctAnswerObj.d) {
-                    score++;
-                    document.getElementById('score-display').textContent = `詠唱成功：${score}`;
+                    // 正解の処理：1回目の挑戦ならスコアアップ
+                    if (isFirstAttempt) {
+                        score++;
+                        document.getElementById('score-display').textContent = `1発正解数：${score}`;
+                    }
                     triggerSlash();
                     nextQuestion();
                 } else {
+                    // 不正解の処理
                     mistakeCount++;
+                    isFirstAttempt = false; // 1発正解の権利を喪失
                     
-                    // 【追加】スコアを容赦なく「2点」減らす（マイナスも許可）
-                    score -= 2;
-                    document.getElementById('score-display').textContent = `詠唱成功：${score}`;
-                    
-                    const scoreDisp = document.getElementById('score-display');
-                    scoreDisp.style.color = 'var(--danger)';
-                    scoreDisp.style.transform = 'scale(1.3)';
-                    
-                    // 【追加】ペナルティ：1.5秒間の操作ロック
-                    isLocked = true;
-                    document.body.style.backgroundColor = 'var(--danger)';
-                    
-                    // ボタンを半透明にして「押せない感」を出す
-                    const allBtns = document.querySelectorAll('.choice-btn');
-                    allBtns.forEach(b => {
-                        b.style.opacity = '0.4';
-                        b.style.cursor = 'not-allowed';
-                    });
-
-                    setTimeout(() => {
-                        scoreDisp.style.color = '#c8b6ff';
-                        scoreDisp.style.transform = 'scale(1)';
-                        document.body.style.backgroundColor = 'var(--bg-color)';
-                        
-                        allBtns.forEach(b => {
-                            b.style.opacity = '1';
-                            b.style.cursor = 'pointer';
-                        });
-                        isLocked = false; // ロック解除
-                    }, 1500);
+                    // 間違えたボタンを視覚的に無効化（赤く暗くして押せなくする）
+                    btn.classList.add('btn-disabled');
                 }
             };
             choicesDiv.appendChild(btn);
@@ -431,36 +410,23 @@
 
     function endGame() {
         clearInterval(timerId);
-        isLocked = false;
         document.body.classList.remove('shake');
-        document.body.style.backgroundColor = 'var(--bg-color)';
         document.getElementById('game-screen').classList.add('hidden');
         document.getElementById('result-screen').classList.remove('hidden');
 
         const now = new Date();
         const dateStr = `${now.getMonth()+1}月${now.getDate()}日 ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
 
+        // スコア計算も減点がない前提での算出に調整
         let choiceMult = 1 + (numChoices - 2) * 0.3;
         let opMult = activeOps.length * 0.2 + (useNegative ? 0.5 : 0);
-        
-        // マイナススコアの場合は攻撃力も0以下になる
-        let finalAtk = Math.floor(score * 200 * choiceMult * (1 + opMult));
+        let finalAtk = Math.floor(score * 150 * choiceMult * (1 + opMult)); // 1分の長丁場なので基礎点を微調整
         
         document.getElementById('final-atk').textContent = finalAtk.toLocaleString();
-        
-        // マイナススコアの時の特別色
-        if (finalAtk < 0) {
-            document.getElementById('final-atk').style.color = 'var(--danger)';
-            document.getElementById('final-atk').style.textShadow = '0 0 20px var(--danger)';
-        } else {
-            document.getElementById('final-atk').style.color = 'var(--magic-green)';
-            document.getElementById('final-atk').style.textShadow = '0 0 20px var(--magic-green)';
-        }
-        
         showRank(finalAtk);
 
         document.getElementById('res-datetime').textContent = dateStr;
-        document.getElementById('res-count').textContent = `${score} 点`;
+        document.getElementById('res-count').textContent = `${score} 回`;
         document.getElementById('res-mistakes').textContent = `${mistakeCount} 回`;
         
         let opsStr = activeOps.join(' ');
@@ -472,12 +438,11 @@
     function showRank(atk) {
         let rank = '見習い'; let color = '#aaa';
         
-        // マイナススコア専用ランク
-        if (atk < 0) { rank = '魔力暴走（落第）'; color = 'var(--danger)'; }
-        else if (atk >= 8000) { rank = '魔法神'; color = 'var(--magic-green)'; }
-        else if (atk >= 6000) { rank = '賢者'; color = '#ffd700'; }
-        else if (atk >= 4000) { rank = '大魔導士'; color = '#ff00ff'; }
-        else if (atk >= 2000) { rank = '魔術師'; color = '#00e5ff'; }
+        // 60秒設定に合わせたランクしきい値
+        if (atk >= 10000) { rank = '魔法神'; color = 'var(--magic-green)'; }
+        else if (atk >= 7500) { rank = '賢者'; color = '#ffd700'; }
+        else if (atk >= 5000) { rank = '大魔導士'; color = '#ff00ff'; }
+        else if (atk >= 2500) { rank = '魔術師'; color = '#00e5ff'; }
         
         const rd = document.getElementById('rank-display');
         rd.textContent = rank;
